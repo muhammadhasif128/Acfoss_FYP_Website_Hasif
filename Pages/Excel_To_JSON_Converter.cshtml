@@ -1,0 +1,61 @@
+﻿@page
+@model Acfoss_FYP_Website_Hasif.Pages.Excel_To_JSON_ConverterModel
+
+@{
+    Layout = "_Layout"; // If you have a layout page
+    ViewData["Title"] = "Excel to JSON Converter";
+}
+
+<h1 class="mt-4 mb-3 text-center">Excel to JSON Converter</h1>
+
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm">
+            @if (Model.ModelState.ErrorCount > 0)
+            {
+                <div class="alert alert-danger">
+                    <ul>
+                        @foreach (var error in Model.ModelState.Values.SelectMany(v => v.Errors))
+                        {
+                            <li>@error.ErrorMessage</li>
+                        }
+                    </ul>
+                </div>
+            }
+
+            <div class="mb-3">
+                <label for="excelFile" class="form-label">Choose Excel File</label>
+                <input class="form-control" type="file" id="excelFile" name="excelFile" />
+            </div>
+
+            <div class="d-grid">
+                <input class="btn btn-primary btn-block" type="submit" value="Convert" />
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yEx1q6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
+    <script>
+        $(document).ready(function () {
+            // Feedback for selected file name
+            $('#excelFile').on('change', function () {
+                var fileName = $(this).val().split('\\').pop();
+                $(this).next('.custom-file-label').addClass("selected").html(fileName);
+            });
+
+            // Prevent submission if no file is selected
+            $('form').submit(function (e) {
+                var fileInput = $('#excelFile');
+                if (fileInput.val() === '') {
+                    e.preventDefault(); // Prevent form submission
+                    alert('Please select an Excel file to convert.');
+                    return false;
+                }
+                return true;
+            });
+        });
+    </script>
+}
+

@@ -1,0 +1,39 @@
+﻿@page
+@model Acfoss_FYP_Website_Hasif.Pages.PeopleModel
+@{
+    <h1> List </h1>
+}
+
+<table class="table table-bordered table-striped">
+    <thead class="thead-dark">
+        <tr>
+            <th scope="col">Id</th>
+            <th scope="col">Name</th>
+            <th scope="col">Age</th>
+            <th scope="col">Action</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var person in Acfoss_FYP_Website_Hasif.Pages.PeopleModel.PeopleList)
+        {
+            <tr>
+                <td>@person.Id</td>
+                <td>@person.Name</td>
+                <td>@person.Age</td>
+                <td>
+                    <form method="post" asp-page-handler="Edit" class="d-inline">
+                        <input type="hidden" name="id" value="@person.Id" />
+                        <input type="text" name="name" value="@person.Name" class="form-control" />
+                        <input type="number" name="age" value="@person.Age" class="form-control" />
+                        <button type="submit" class="btn btn-primary">Update</button>
+                    </form>
+                    <form method="post" asp-page-handler="Delete" class="d-inline">
+                        <input type="hidden" name="id" value="@person.Id" />
+                        <button type="submit" class="btn btn-danger">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
