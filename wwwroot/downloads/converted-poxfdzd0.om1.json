@@ -1,0 +1,47 @@
+[
+  {
+    "First Name": "Wai Seng",
+    "Last Name": "Mok",
+    "Gender": "M",
+    "Mobile No.": 91234500.0,
+    "Email Addr.": "mok@acfoss.com.sg",
+    "Join Date": "2000-12-12T00:00:00",
+    "Posistion": "Partner"
+  },
+  {
+    "First Name": "Chee Hwee",
+    "Last Name": "Koh",
+    "Gender": "M",
+    "Mobile No.": 92345000.0,
+    "Email Addr.": "rey@acfoss.com.sg",
+    "Join Date": "2020-01-01T00:00:00",
+    "Posistion": "Partner"
+  },
+  {
+    "First Name": "Weihong Graham",
+    "Last Name": "Tan",
+    "Gender": "M",
+    "Mobile No.": 93450000.0,
+    "Email Addr.": "graham@acfoss.com.sg",
+    "Join Date": "2017-04-03T00:00:00",
+    "Posistion": "Supervisor"
+  },
+  {
+    "First Name": "Shi Hong",
+    "Last Name": "Chai",
+    "Gender": "F",
+    "Mobile No.": 94567000.0,
+    "Email Addr.": "shihong@acfoss.com.sg",
+    "Join Date": "2022-07-01T00:00:00",
+    "Posistion": "Associate"
+  },
+  {
+    "First Name": "Pei Xuan",
+    "Last Name": "Tan",
+    "Gender": "F",
+    "Mobile No.": 94567999.0,
+    "Email Addr.": "peixuan@acfoss.com.sg",
+    "Join Date": "2021-05-05T00:00:00",
+    "Posistion": "Senior"
+  }
+]

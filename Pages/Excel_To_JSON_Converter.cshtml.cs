@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc.RazorPages;
 using ClosedXML.Excel;
 using System.IO;
 using Newtonsoft.Json;
-using System.Xml;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
 namespace Acfoss_FYP_Website_Hasif.Pages
 {
@@ -16,59 +17,10 @@ namespace Acfoss_FYP_Website_Hasif.Pages
         {
         }
 
-        public IActionResult OnPost()
-        {
-            try
-            {
-                if (excelFile != null)
-                {
-                    using (var memoryStream = new MemoryStream())
-                    {
-                        excelFile.CopyTo(memoryStream);
-                        using (var workbook = new XLWorkbook(memoryStream))
-                        {
-                            var worksheet = workbook.Worksheet(1);
-                            var rows = worksheet.RangeUsed().RowsUsed();
-                            var headers = rows.First().Cells().Select(c => c.Value.ToString()).ToList();
-                            var jsonData = new List<Dictionary<string, object>>();
-
-                            foreach (var row in rows.Skip(1)) // Skip header row
-                            {
-                                var rowDict = new Dictionary<string, object>();
-                                for (int i = 0; i < headers.Count; i++)
-                                {
-                                    var header = headers[i];
-                                    var value = row.Cell(i + 1).Value;
-                                    rowDict[header] = value;
-                                }
-                                jsonData.Add(rowDict);
-                            }
-
-                            var jsonResult = JsonConvert.SerializeObject(jsonData, Newtonsoft.Json.Formatting.Indented);
-
-                            return File(System.Text.Encoding.UTF8.GetBytes(jsonResult), "application/json", "Converted.json");
-                        }
-                    }
-                }
-                // If the file is null, we return to the page with an error message (or handle it as necessary).
-                ModelState.AddModelError("", "Please upload an Excel file.");
-                return Page();
-            }
-            catch (Exception ex)
-            {
-                // Log the exception, if logging is set up
-                // LogException(ex);
-
-                // Inform the user something went wrong
-                ModelState.AddModelError("", "An error occurred while processing your request.");
-                return Page();
-            }
-        }
-
+        // This handler previews the headers of the Excel file.
         public async Task<JsonResult> OnPostPreviewHeadersAsync()
         {
             var headers = new List<string>();
-
             var file = Request.Form.Files.GetFile("excelFile");
 
             if (file != null)
@@ -91,18 +43,16 @@ namespace Acfoss_FYP_Website_Hasif.Pages
             return new JsonResult(headers);
         }
 
-        public async Task<IActionResult> OnPostConvertAsync(string[] selectedFields)
+        // This handler converts the selected fields to JSON.
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> OnPostConvertAsync([FromForm] List<string> selectedFields)
         {
-            if (excelFile == null || selectedFields == null || selectedFields.Length == 0)
+            if (excelFile == null || selectedFields == null || selectedFields.Count == 0)
             {
                 ModelState.AddModelError("", "Please upload an Excel file and select fields.");
                 return Page();
             }
-
-            Console.WriteLine($"Selected Fields: {string.Join(", ", selectedFields)}");
-
-            // Convert selectedFields to lowercase for case-insensitive comparison
-            var lowerCaseSelectedFields = selectedFields.Select(sf => sf.ToLower()).ToList();
 
             var jsonData = new List<Dictionary<string, object>>();
 
@@ -112,7 +62,7 @@ namespace Acfoss_FYP_Website_Hasif.Pages
                 using (var workbook = new XLWorkbook(memoryStream))
                 {
                     var worksheet = workbook.Worksheet(1);
-                    var rows = worksheet.RangeUsed().RowsUsed().Skip(1); // Skipping header row
+                    var rows = worksheet.RangeUsed().RowsUsed().Skip(1); // Skip header row
                     var headers = worksheet.FirstRow().Cells().Select(c => c.Value.ToString()).ToList();
 
                     foreach (var row in rows)
@@ -120,12 +70,11 @@ namespace Acfoss_FYP_Website_Hasif.Pages
                         var rowDict = new Dictionary<string, object>();
                         for (int i = 0; i < headers.Count; i++)
                         {
-                            var headerLowerCase = headers[i].ToLower();
-                            if (lowerCaseSelectedFields.Contains(headerLowerCase))
+                            if (selectedFields.Contains(headers[i]))
                             {
                                 var header = headers[i];
                                 var value = row.Cell(i + 1).Value;
-                                rowDict.Add(header, value ?? "");
+                                rowDict[header] = value ?? "";
                             }
                         }
                         if (rowDict.Count > 0)
@@ -136,26 +85,21 @@ namespace Acfoss_FYP_Website_Hasif.Pages
                 }
             }
 
-            // Assuming jsonData is already populated but includes fields not selected by the user
-            // Convert selectedFields to a case-insensitive HashSet for efficient lookups
-            var selectedFieldSet = new HashSet<string>(selectedFields, StringComparer.OrdinalIgnoreCase);
+            // Serialize the jsonData to a JSON string
+            var jsonResult = JsonConvert.SerializeObject(jsonData, Formatting.Indented);
 
-            for (int j = jsonData.Count - 1; j >= 0; j--)
-            {
-                var item = jsonData[j];
-                var keys = item.Keys.ToList(); // Create a list of keys to iterate over (to avoid modifying the collection while iterating)
-                foreach (var key in keys)
-                {
-                    if (!selectedFieldSet.Contains(key))
-                    {
-                        item.Remove(key); // Remove the unselected field from the dictionary
-                    }
-                }
-            }
+            // Save the JSON string to a temporary file and provide a download URL
+            var tempFileName = "converted-" + Path.GetRandomFileName() + ".json";
+            var tempFilePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", "downloads", tempFileName);
 
-            // Now jsonData only contains data for selected fields and can be serialized to JSON
-            var jsonResult = JsonConvert.SerializeObject(jsonData, Newtonsoft.Json.Formatting.Indented);
-            return File(System.Text.Encoding.UTF8.GetBytes(jsonResult), "application/json", "Converted.json");
+            // Ensure the downloads folder exists
+            var fileInfo = new FileInfo(tempFilePath);
+            fileInfo.Directory.Create(); // If the directory already exists, this method does nothing
+
+            System.IO.File.WriteAllText(tempFilePath, jsonResult);
+
+            // Return the relative URL to the temporary file for download
+            return new JsonResult(new { downloadUrl = Url.Content($"~/downloads/{tempFileName}") });
         }
     }
 }

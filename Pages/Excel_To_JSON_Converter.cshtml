@@ -10,7 +10,7 @@
 
 <div class="row justify-content-center">
     <div class="col-md-8">
-        <form method="post" enctype="multipart/form-data" class="card p-4 shadow-sm">
+        <form method="post" enctype="multipart/form-data" asp-page-handler="Convert">
             @if (Model.ModelState.ErrorCount > 0)
             {
                 <div class="alert alert-danger">
@@ -56,83 +56,30 @@
 
 @section Scripts {
     <script src="https://code.jquery.com/jquery-3.6.0.min.js" integrity="sha256-/xUj+3OJU5yEx1q6GSYGSHk7tPXikynS7ogEvDej/m4=" crossorigin="anonymous"></script>
-    <input type="hidden" id="selectedFields" name="selectedFields" />
     <script>
-        // Additional function to update selectedFields input
-        function updateSelectedFields() {
-            var selectedFields = [];
-            $("input[name='selectedFields']:checked").each(function () {
-                selectedFields.push($(this).val());
-            });
-            $('#selectedFields').val(JSON.stringify(selectedFields));
-        }
-
-        $('form').submit(function (e) {
-            // Existing code to prevent submission if no file is selected
-            var fileInput = $('#excelFile');
-            if (fileInput.val() === '') {
-                e.preventDefault(); // Prevent form submission
-                alert('Please select an Excel file to convert.');
-                return false;
-            }
-
-            // Update selectedFields input before submission
-            updateSelectedFields();
-
-            return true;
-        });
-
-        $(document).ready(function () {
-            // Feedback for selected file name
-            $('#excelFile').on('change', function () {
-                var fileName = $(this).val().split('\\').pop();
-                $(this).next('.custom-file-label').addClass("selected").html(fileName);
-
-                // Preview headers after file selection
-                previewExcelHeaders();
-            });
-
-            // Prevent submission if no file is selected
-            $('form').submit(function (e) {
-                var fileInput = $('#excelFile');
-                if (fileInput.val() === '') {
-                    e.preventDefault(); // Prevent form submission
-                    alert('Please select an Excel file to convert.');
-                    return false;
-                }
-                return true;
-            });
-        });
-
         function previewExcelHeaders() {
             var formData = new FormData();
             formData.append("excelFile", $('#excelFile')[0].files[0]);
 
             $.ajax({
-                url: '/Excel_To_JSON_Converter?handler=PreviewHeaders',
+                url: '@Url.Page("/Excel_To_JSON_Converter", "PreviewHeaders")',
                 type: 'POST',
                 data: formData,
                 processData: false,
                 contentType: false,
                 headers: {
-                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val() // Add anti-forgery token
+                    'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
                 },
                 success: function (headers) {
-                    // Clear existing headers
                     $('#headersTableBody').empty();
-
-                    // Append new headers as checkboxes
                     $.each(headers, function (index, header) {
                         $('#headersTableBody').append(`
-                                                                   <tr>
-                                                                        <td><input type="checkbox" name="selectedFields" value="${header}" checked></td>
-                                                                        <td>${header}</td>
-                                                                   </tr>
-                                                                `);
+                                    <tr>
+                                        <td><input type="checkbox" name="selectedFields" value="${header}" checked></td>
+                                        <td>${header}</td>
+                                    </tr>
+                                `);
                     });
-
-
-                    // Show the headers preview
                     $('#headersPreview').show();
                 },
                 error: function (xhr, status, error) {
@@ -141,5 +88,62 @@
                 }
             });
         }
+
+        $(document).ready(function () {
+            $('#excelFile').on('change', function () {
+                var fileName = $(this).val().split('\\').pop();
+                $(this).siblings('.custom-file-label').addClass("selected").html(fileName);
+                previewExcelHeaders();
+            });
+
+            $('form').on('submit', function (e) {
+                e.preventDefault();
+
+                var fileInput = $('#excelFile');
+                if (fileInput.val() === '') {
+                    alert('Please select an Excel file to convert.');
+                    return false;
+                }
+
+                var selectedFields = [];
+                $("input[name='selectedFields']:checked").each(function () {
+                    selectedFields.push($(this).val());
+                });
+
+                if (selectedFields.length === 0) {
+                    alert('Please select at least one field to convert.');
+                    return false;
+                }
+
+                var formData = new FormData(this);
+                formData.delete('excelFile'); // Remove the original excelFile if it's already been appended
+                formData.append('excelFile', fileInput[0].files[0]); // Append the file from the input
+                selectedFields.forEach(field => formData.append('selectedFields', field));
+
+                $.ajax({
+                    url: '@Url.Page("/Excel_To_JSON_Converter", "Convert")',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    headers: {
+                        'RequestVerificationToken': $('input[name="__RequestVerificationToken"]').val()
+                    },
+                    success: function (response) {
+                        // Assuming the server sends back a JSON with a property 'downloadUrl'
+                        if (response.hasOwnProperty('downloadUrl')) {
+                            window.location.href = response.downloadUrl;
+                        } else {
+                            alert('There was a problem generating the JSON file.');
+                        }
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("Error submitting form: ", error);
+                        alert('Error submitting form. Please try again.');
+                    }
+                });
+            });
+        });
     </script>
 }
+
